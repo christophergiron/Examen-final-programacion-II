@@ -30,42 +30,45 @@ fun ListaPrestamosScreen(navController: NavController) {
 
     var prestamos by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(user) {
         if (user != null) {
             firestore.collection("prestamos")
-                .whereEqualTo("userId", user.uid)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .whereEqualTo("usuarioId", user.uid)
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
                         Log.e("Firestore", "Error al obtener préstamos", e)
+                        errorMessage = "Error al cargar los datos."
+                        isLoading = false
                         return@addSnapshotListener
                     }
 
-                    val nuevos = snapshot?.documents?.mapNotNull { doc ->
-                        doc.data?.toMutableMap()?.apply {
-                            this["id"] = doc.id
+                    if (snapshot != null) {
+                        val nuevos = snapshot.documents.mapNotNull { doc ->
+                            doc.data?.toMutableMap()?.apply {
+                                this["id"] = doc.id
+                            }
                         }
-                    } ?: emptyList()
 
-                    if (nuevos != prestamos) {
                         prestamos = nuevos
                         Log.d("Firestore", "Lista actualizada: ${prestamos.size} préstamos")
+                    } else {
+                        prestamos = emptyList()
                     }
 
                     isLoading = false
                 }
         } else {
             isLoading = false
+            errorMessage = "Usuario no autenticado."
         }
     }
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {
-                    navController.navigate("prestamos/nuevo")
-                }
+                onClick = { navController.navigate("prestamos/nuevo") }
             ) {
                 Text("+")
             }
@@ -92,6 +95,15 @@ fun ListaPrestamosScreen(navController: NavController) {
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
+                    }
+                }
+
+                errorMessage != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(errorMessage ?: "Error desconocido")
                     }
                 }
 
