@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1039412699481",
+    "project_id": "examen-final-programacion-ii",
+    "storage_bucket": "examen-final-programacion-ii.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1039412699481:android:d309260b40374d2824ec48",
+        "android_client_info": {
+          "package_name": "com.example.examenfinalprogramacionii"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-AJfzyX2Unm28RbSluTg4DSO9KI5kVVM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
