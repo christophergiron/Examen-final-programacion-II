@@ -8,12 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(navController: NavController) {
-    val auth = Firebase.auth
+    val auth = FirebaseAuth.getInstance()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
@@ -44,20 +43,24 @@ fun LoginScreen(navController: NavController) {
             if (email.isNotEmpty() && password.isNotEmpty()) {
                 auth.signInWithEmailAndPassword(email, password)
                     .addOnSuccessListener {
-                        navController.navigate("task")
+                        navController.navigate("lista_prestamos") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
-                    .addOnFailureListener {
-                        auth.createUserWithEmailAndPassword(email, password)
-                            .addOnSuccessListener {
-                                navController.navigate("task")
-                            }
-                            .addOnFailureListener { e ->
-                                message = e.message ?: "Error al registrar"
-                            }
+                    .addOnFailureListener { e ->
+                        message = "Error: ${e.message}"
                     }
+            } else {
+                message = "Por favor, completa todos los campos."
             }
         }) {
-            Text("Entrar / Registrar")
+            Text("Entrar")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextButton(onClick = { navController.navigate("register") }) {
+            Text("¿No tienes cuenta? Regístrate aquí")
         }
 
         Spacer(modifier = Modifier.height(8.dp))

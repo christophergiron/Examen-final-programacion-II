@@ -69,6 +69,7 @@ dependencies {
 
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation(libs.firebase.crashlytics.buildtools)
+    implementation(libs.androidx.runtime)
     kapt("com.github.bumptech.glide:compiler:4.16.0")
 
     implementation("io.coil-kt:coil-compose:2.6.0")

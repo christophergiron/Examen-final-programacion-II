@@ -5,6 +5,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,36 +22,35 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskListScreen(navController: NavController) {
+fun ListaPrestamosScreen(navController: NavController) {
     val firestore = FirebaseFirestore.getInstance()
     val user = FirebaseAuth.getInstance().currentUser
 
-    var tasks by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var prestamos by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(user) {
         if (user != null) {
-            firestore.collection("tasks")
+            firestore.collection("prestamos")
                 .whereEqualTo("userId", user.uid)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        Log.e("Firestore", "Error al obtener tareas", e)
+                        Log.e("Firestore", "Error al obtener préstamos", e)
                         return@addSnapshotListener
                     }
 
-                    // Si snapshot es nulo o vacío → lista vacía
-                    val newTasks = snapshot?.documents?.mapNotNull { doc ->
+                    val nuevos = snapshot?.documents?.mapNotNull { doc ->
                         doc.data?.toMutableMap()?.apply {
                             this["id"] = doc.id
                         }
                     } ?: emptyList()
 
-                    // Solo reemplazamos si hay cambios reales
-                    if (newTasks != tasks) {
-                        tasks = newTasks
-                        Log.d("Firestore", "Lista actualizada: ${tasks.size} tareas")
+                    if (nuevos != prestamos) {
+                        prestamos = nuevos
+                        Log.d("Firestore", "Lista actualizada: ${prestamos.size} préstamos")
                     }
 
                     isLoading = false
@@ -62,9 +62,11 @@ fun TaskListScreen(navController: NavController) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                navController.navigate("task")
-            }) {
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate("prestamos/nuevo")
+                }
+            ) {
                 Text("+")
             }
         }
@@ -76,7 +78,7 @@ fun TaskListScreen(navController: NavController) {
                 .background(MaterialTheme.colorScheme.background)
         ) {
             Text(
-                "Mis Tareas",
+                text = "Lista de Préstamos",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier
                     .padding(16.dp)
@@ -93,12 +95,12 @@ fun TaskListScreen(navController: NavController) {
                     }
                 }
 
-                tasks.isEmpty() -> {
+                prestamos.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No tienes tareas aún.")
+                        Text("No hay préstamos registrados aún.")
                     }
                 }
 
@@ -109,10 +111,16 @@ fun TaskListScreen(navController: NavController) {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(
-                            items = tasks,
+                            items = prestamos,
                             key = { it["id"] as? String ?: it.hashCode().toString() }
-                        ) { task ->
-                            TaskItem(task)
+                        ) { prestamo ->
+                            PrestamoItem(
+                                prestamo = prestamo,
+                                onClick = {
+                                    val id = prestamo["id"] as? String ?: "sin_id"
+                                    navController.navigate("prestamos/$id")
+                                }
+                            )
                         }
                     }
                 }
@@ -122,22 +130,32 @@ fun TaskListScreen(navController: NavController) {
 }
 
 @Composable
-fun TaskItem(task: Map<String, Any>) {
+fun PrestamoItem(
+    prestamo: Map<String, Any>,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(4.dp),
+            .padding(horizontal = 8.dp)
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = task["description"] as? String ?: "(Sin descripción)",
+                text = prestamo["descripcion"] as? String ?: "(Sin descripción)",
                 style = MaterialTheme.typography.bodyLarge
+            )
+
+            val monto = prestamo["monto"] as? String ?: "(Monto no especificado)"
+            Text(
+                text = "Monto: Q$monto",
+                style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val base64Image = task["imageBase64"] as? String
+            val base64Image = prestamo["imagenBase64"] as? String
             if (!base64Image.isNullOrEmpty()) {
                 val imageBitmap = remember(base64Image) {
                     try {
@@ -146,7 +164,7 @@ fun TaskItem(task: Map<String, Any>) {
                         val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
                         bitmap?.asImageBitmap()
                     } catch (e: Exception) {
-                        Log.e("TaskItem", "Error decodificando imagen Base64", e)
+                        Log.e("PrestamoItem", "Error decodificando imagen Base64", e)
                         null
                     }
                 }
@@ -154,7 +172,7 @@ fun TaskItem(task: Map<String, Any>) {
                 imageBitmap?.let {
                     Image(
                         bitmap = it,
-                        contentDescription = "Imagen de tarea",
+                        contentDescription = "Imagen del préstamo",
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp)
